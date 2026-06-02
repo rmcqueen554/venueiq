@@ -4,26 +4,8 @@
   "private": true,
   "description": "VenueIQ — AI-Powered Stadium Operations Intelligence Platform",
   "workspaces": [
-    "packages/shared-types",
-    "packages/shared-utils",
-    "packages/kafka-schemas",
     "packages/frontend",
-    "packages/services/tenant-service",
-    "packages/services/executive-service",
-    "packages/services/concessions-service",
-    "packages/services/security-service",
-    "packages/services/parking-service",
-    "packages/services/facilities-service",
-    "packages/services/agents-service",
-    "packages/services/nlq-service",
-    "packages/services/realtime-service",
-    "packages/services/automation-service",
-    "packages/services/reporting-service",
-    "packages/services/ticketing-service",
-    "packages/services/sponsorship-service",
-    "packages/services/operations-service",
-    "packages/services/merchandise-service",
-    "packages/services/fan-experience-service"
+    "packages/services/api"
   ],
   "scripts": {
     "build": "turbo run build",

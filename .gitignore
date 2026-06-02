@@ -19,3 +19,7 @@ __pycache__/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+packages/services/api/src/generated/
+.monolith-ddl.sql
+.render-services.json
+.supabase-*

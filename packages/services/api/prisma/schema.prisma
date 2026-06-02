@@ -1,0 +1,476 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Tenants & Auth ────────────────────────────────────────────────────────
+model Tenant {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                   String
+  slug                   String    @unique
+  type                   String
+  capacity               Int?
+  timezone               String    @default("America/New_York")
+  tier                   String    @default("starter")
+  stripe_customer_id     String?
+  stripe_subscription_id String?
+  white_label_config     Json?
+  onboarding_completed_at DateTime? @db.Timestamptz
+  created_at             DateTime  @default(now()) @db.Timestamptz
+  updated_at             DateTime  @updatedAt @db.Timestamptz
+
+  venues       Venue[]
+  events       Event[]
+  data_sources TenantDataSource[]
+  users        TenantUser[]
+  notif_config NotificationConfig?
+
+  @@map("tenants")
+}
+
+model Venue {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  name          String
+  address       String?
+  city          String?
+  state         String?
+  country       String   @default("US")
+  lat           Decimal? @db.Decimal(9, 6)
+  lng           Decimal? @db.Decimal(9, 6)
+  layout_config Json?
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @updatedAt @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@index([tenant_id])
+  @@map("venues")
+}
+
+model Event {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String    @db.Uuid
+  venue_id            String    @db.Uuid
+  name                String
+  type                String
+  sport_or_genre      String?
+  opponent_or_artist  String?
+  scheduled_at        DateTime  @db.Timestamptz
+  gates_open_at       DateTime? @db.Timestamptz
+  expected_attendance Int?
+  status              String    @default("scheduled")
+  weather_forecast    Json?
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  venue  Venue  @relation(fields: [venue_id], references: [id])
+
+  @@index([tenant_id, status])
+  @@index([tenant_id, scheduled_at])
+  @@map("events")
+}
+
+model TenantDataSource {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String    @db.Uuid
+  source_type   String
+  credentials   Json
+  status        String    @default("pending")
+  last_sync_at  DateTime? @db.Timestamptz
+  error_message String?
+  config        Json?
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @updatedAt @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, source_type])
+  @@index([tenant_id])
+  @@map("tenant_data_sources")
+}
+
+model TenantUser {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String    @db.Uuid
+  user_id      String
+  role         String
+  permissions  Json      @default("{}")
+  invited_at   DateTime  @default(now()) @db.Timestamptz
+  activated_at DateTime? @db.Timestamptz
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  updated_at   DateTime  @updatedAt @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, user_id])
+  @@index([tenant_id])
+  @@map("tenant_users")
+}
+
+model OnboardingProgress {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @unique @db.Uuid
+  step       Int      @default(1)
+  completed  Boolean  @default(false)
+  step_data  Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@map("onboarding_progress")
+}
+
+model NotificationConfig {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @unique @db.Uuid
+  preferred_channel String   @default("teams")
+  teams_webhook     String?
+  slack_webhook     String?
+  email_enabled     Boolean  @default(true)
+  sms_enabled       Boolean  @default(false)
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @updatedAt @db.Timestamptz
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("notification_configs")
+}
+
+// ── Executive Intelligence ─────────────────────────────────────────────────
+model DailyBriefing {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  content       String
+  event_id      String?  @db.Uuid
+  briefing_date DateTime @db.Date
+  token_count   Int?
+  cost_usd      Decimal? @db.Decimal(8, 6)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  @@unique([tenant_id, briefing_date])
+  @@index([tenant_id])
+  @@map("daily_briefings")
+}
+
+model RiskOpportunity {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id          String    @db.Uuid
+  event_id           String?   @db.Uuid
+  severity           String
+  module             String
+  title              String
+  description        String
+  recommended_action String
+  dismissed          Boolean   @default(false)
+  acted_on           Boolean   @default(false)
+  acted_by           String?
+  acted_at           DateTime? @db.Timestamptz
+  created_at         DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, dismissed])
+  @@map("risk_opportunities")
+}
+
+// ── AI Agents ──────────────────────────────────────────────────────────────
+model AgentOutput {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String    @db.Uuid
+  agent_name       String
+  output_type      String
+  severity         String?
+  title            String
+  body             String
+  data             Json?
+  requires_approval Boolean  @default(false)
+  approved_by      String?
+  approved_at      DateTime? @db.Timestamptz
+  rejected_by      String?
+  rejected_at      DateTime? @db.Timestamptz
+  auto_executed    Boolean   @default(false)
+  executed_at      DateTime? @db.Timestamptz
+  event_id         String?   @db.Uuid
+  created_at       DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, requires_approval, approved_at])
+  @@index([tenant_id, created_at])
+  @@map("agent_outputs")
+}
+
+model ClaudeApiCallLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  service         String
+  model           String
+  input_tokens    Int
+  output_tokens   Int
+  cost_usd        Decimal  @db.Decimal(10, 6)
+  latency_ms      Int
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, created_at])
+  @@map("claude_api_call_logs")
+}
+
+// ── Concessions ────────────────────────────────────────────────────────────
+model Stand {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @db.Uuid
+  venue_id          String   @db.Uuid
+  name              String
+  location_x        Float    @default(0)
+  location_y        Float    @default(0)
+  type              String   @default("concessions")
+  capacity_per_hour Int      @default(60)
+  active            Boolean  @default(true)
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @updatedAt @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("stands")
+}
+
+model Product {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  name       String
+  category   String
+  price      Decimal  @db.Decimal(10, 2)
+  cost       Decimal  @db.Decimal(10, 2)
+  sku        String
+  active     Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@unique([tenant_id, sku])
+  @@index([tenant_id])
+  @@map("products")
+}
+
+model InventoryLevel {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  stand_id   String   @db.Uuid
+  product_id String   @db.Uuid
+  quantity   Int      @default(0)
+  par_level  Int      @default(50)
+  updated_at DateTime @updatedAt @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@unique([tenant_id, stand_id, product_id])
+  @@index([tenant_id])
+  @@map("inventory_levels")
+}
+
+model PosTransaction {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String   @db.Uuid
+  stand_id       String   @db.Uuid
+  event_id       String   @db.Uuid
+  transaction_id String
+  items          Json
+  subtotal       Decimal  @db.Decimal(10, 2)
+  tax            Decimal  @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  payment_method String
+  fan_id         String?  @db.Uuid
+  source_system  String
+  occurred_at    DateTime @db.Timestamptz
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, occurred_at])
+  @@map("pos_transactions")
+}
+
+// ── Security ───────────────────────────────────────────────────────────────
+model SecurityIncident {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id            String    @db.Uuid
+  event_id             String    @db.Uuid
+  type                 String
+  severity             String
+  location_description String
+  location_x           Float?
+  location_y           Float?
+  reported_at          DateTime  @db.Timestamptz
+  resolved_at          DateTime? @db.Timestamptz
+  reported_by          String
+  description          String
+  actions_taken        Json      @default("[]")
+  status               String    @default("open")
+  created_at           DateTime  @default(now()) @db.Timestamptz
+  updated_at           DateTime  @updatedAt @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, status])
+  @@map("security_incidents")
+}
+
+model CameraFeed {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @db.Uuid
+  name              String
+  location_x        Float    @default(0)
+  location_y        Float    @default(0)
+  stream_url        String?
+  analytics_enabled Boolean  @default(false)
+  active            Boolean  @default(true)
+  created_at        DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("camera_feeds")
+}
+
+// ── Parking ────────────────────────────────────────────────────────────────
+model ParkingLot {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  name         String
+  total_spaces Int
+  type         String   @default("surface")
+  location_x   Float    @default(0)
+  location_y   Float    @default(0)
+  active       Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @updatedAt @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("parking_lots")
+}
+
+model ParkingTransaction {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String    @db.Uuid
+  lot_id          String    @db.Uuid
+  event_id        String    @db.Uuid
+  entry_time      DateTime  @db.Timestamptz
+  exit_time       DateTime? @db.Timestamptz
+  revenue         Decimal?  @db.Decimal(10, 2)
+  vehicle_type    String    @default("car")
+  pre_sold        Boolean   @default(false)
+  created_at      DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("parking_transactions")
+}
+
+// ── Facilities ─────────────────────────────────────────────────────────────
+model Asset {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                String    @db.Uuid
+  name                     String
+  type                     String
+  location_name            String?
+  manufacturer             String?
+  model                    String?
+  install_date             DateTime? @db.Timestamptz
+  warranty_expiry          DateTime? @db.Timestamptz
+  last_maintenance         DateTime? @db.Timestamptz
+  maintenance_interval_days Int      @default(90)
+  health_score             Float     @default(1.0)
+  active                   Boolean   @default(true)
+  created_at               DateTime  @default(now()) @db.Timestamptz
+  updated_at               DateTime  @updatedAt @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("assets")
+}
+
+model MaintenanceWorkOrder {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String    @db.Uuid
+  asset_id     String    @db.Uuid
+  type         String
+  description  String
+  priority     String    @default("medium")
+  status       String    @default("open")
+  assigned_to  String?
+  scheduled_at DateTime? @db.Timestamptz
+  completed_at DateTime? @db.Timestamptz
+  cost         Decimal?  @db.Decimal(10, 2)
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  updated_at   DateTime  @updatedAt @db.Timestamptz
+
+  @@index([tenant_id, status])
+  @@map("maintenance_work_orders")
+}
+
+// ── Fan Experience ─────────────────────────────────────────────────────────
+model FanProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String    @db.Uuid
+  external_crm_id     String?
+  email               String?
+  loyalty_tier        String?
+  lifetime_value      Decimal   @default(0) @db.Decimal(12, 2)
+  first_purchase_date DateTime? @db.Timestamptz
+  last_purchase_date  DateTime? @db.Timestamptz
+  renewal_score       Float?
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+  @@map("fan_profiles")
+}
+
+model NpsResponse {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String   @db.Uuid
+  event_id    String   @db.Uuid
+  fan_id      String?  @db.Uuid
+  score       Int
+  verbatim    String?
+  category    String?
+  sentiment   String   @default("neutral")
+  occurred_at DateTime @db.Timestamptz
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("nps_responses")
+}
+
+// ── NLQ Query Log ──────────────────────────────────────────────────────────
+model NlqQuery {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @db.Uuid
+  user_id           String
+  user_role         String
+  question          String
+  generated_sql     String?
+  response          String
+  token_count       Int?
+  cost_usd          Decimal? @db.Decimal(8, 6)
+  session_id        String
+  context_page      String?
+  created_at        DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, created_at])
+  @@map("nlq_queries")
+}
+
+// ── Automation ─────────────────────────────────────────────────────────────
+model AutomationRule {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String    @db.Uuid
+  name           String
+  trigger_type   String
+  trigger_config Json
+  action_type    String
+  action_config  Json
+  active         Boolean   @default(true)
+  last_triggered_at DateTime? @db.Timestamptz
+  created_by     String
+  created_at     DateTime  @default(now()) @db.Timestamptz
+  updated_at     DateTime  @updatedAt @db.Timestamptz
+
+  @@index([tenant_id, active])
+  @@map("automation_rules")
+}
