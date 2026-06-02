@@ -9,7 +9,6 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@venueiq/shared-types": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^6.23.0",

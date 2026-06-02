@@ -3,9 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Send, X, Loader2 } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import { useAppStore } from '../../store/appStore';
-import { v4 as uuidv4 } from 'uuid';
-
-const SESSION_ID = uuidv4(); // Session-scoped ID
+const SESSION_ID = crypto.randomUUID();
 
 const SUGGESTED_QUESTIONS: Record<string, string[]> = {
   '/dashboard': [
