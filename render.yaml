@@ -1,0 +1,211 @@
+services:
+  # ── Tenant & Onboarding Service ────────────────────────────────────────────
+  - type: web
+    name: venueiq-tenant
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/tenant-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Executive Intelligence Service ─────────────────────────────────────────
+  - type: web
+    name: venueiq-executive
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/executive-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Concessions Intelligence Service ───────────────────────────────────────
+  - type: web
+    name: venueiq-concessions
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/concessions-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Security Intelligence Service ──────────────────────────────────────────
+  - type: web
+    name: venueiq-security
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/security-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Parking Intelligence Service ───────────────────────────────────────────
+  - type: web
+    name: venueiq-parking
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/parking-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Facilities Intelligence Service ────────────────────────────────────────
+  - type: web
+    name: venueiq-facilities
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/facilities-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── NLQ Service ────────────────────────────────────────────────────────────
+  - type: web
+    name: venueiq-nlq
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/nlq-service/src/index.ts
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Realtime Service (Socket.io) ───────────────────────────────────────────
+  - type: web
+    name: venueiq-realtime
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/realtime-service/src/index.ts
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+  # ── Agents Service (Background Worker) ────────────────────────────────────
+  - type: worker
+    name: venueiq-agents
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: npm install --legacy-peer-deps --no-fund
+    startCommand: npx tsx packages/services/agents-service/src/index.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_ENABLED
+        value: "false"
+      - fromGroup: venueiq-shared
+
+envVarGroups:
+  - name: venueiq-shared
+    envVars:
+      - key: CLERK_SECRET_KEY
+        value: sk_test_Ud1uXh8tPfAHKh7sKFcGfWDlJqNaw1pAdsDI29DpuJ
+      - key: CLERK_PUBLISHABLE_KEY
+        value: pk_test_YXNzdXJlZC1nbnUtMjkuY2xlcmsuYWNjb3VudHMuZGV2JA
+      - key: FRONTEND_URL
+        value: https://venueiq-rho.vercel.app
+      - key: ANTHROPIC_API_KEY
+        value: ""
+      - key: ML_SERVICE_API_KEY
+        value: dev-key
+      - key: TENANTS_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=tenants&sslmode=require
+      - key: EXECUTIVE_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=executive&sslmode=require
+      - key: CONCESSIONS_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=concessions&sslmode=require
+      - key: MERCHANDISE_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=merchandise&sslmode=require
+      - key: TICKETING_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=ticketing&sslmode=require
+      - key: SPONSORSHIP_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=sponsorship&sslmode=require
+      - key: OPERATIONS_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=operations&sslmode=require
+      - key: FACILITIES_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=facilities&sslmode=require
+      - key: SECURITY_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=security&sslmode=require
+      - key: PARKING_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=parking&sslmode=require
+      - key: FANS_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=fans&sslmode=require
+      - key: AGENTS_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=agents&sslmode=require
+      - key: NLQ_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=nlq&sslmode=require
+      - key: AUTOMATION_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=automation&sslmode=require
+      - key: REPORTING_DATABASE_URL
+        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=reporting&sslmode=require
