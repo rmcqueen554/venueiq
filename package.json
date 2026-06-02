@@ -4,8 +4,7 @@
   "private": true,
   "description": "VenueIQ — AI-Powered Stadium Operations Intelligence Platform",
   "workspaces": [
-    "packages/frontend",
-    "packages/services/api"
+    "packages/frontend"
   ],
   "scripts": {
     "build": "turbo run build",

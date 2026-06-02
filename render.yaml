@@ -5,8 +5,9 @@ services:
     region: oregon
     plan: free
     branch: main
-    buildCommand: npm install --legacy-peer-deps --no-fund && npx prisma generate --schema=packages/services/api/prisma/schema.prisma
-    startCommand: npx tsx packages/services/api/src/index.ts
+    rootDir: packages/services/api
+    buildCommand: npm install --legacy-peer-deps --no-fund && npx prisma generate
+    startCommand: npx tsx src/index.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
