@@ -126,5 +126,9 @@ async function startKafkaConsumers() {
 const PORT = parseInt(process.env.PORT ?? '3013');
 httpServer.listen(PORT, () => {
   logger.info({ port: PORT }, 'Realtime service (Socket.io) started');
-  startKafkaConsumers().catch((err) => logger.error({ err }, 'Kafka consumer failed to start'));
+  if (process.env.KAFKA_ENABLED !== 'false') {
+    startKafkaConsumers().catch((err) => logger.error({ err }, 'Kafka consumer failed to start'));
+  } else {
+    logger.info('Kafka disabled — Socket.io running without event stream');
+  }
 });

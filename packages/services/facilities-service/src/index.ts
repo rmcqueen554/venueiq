@@ -92,38 +92,38 @@ async function bootstrap() {
   });
 
   // ── Kafka Consumer: IoT Sensor Readings ───────────────────────────────────
-  const consumer = createConsumer('venueiq-facilities');
-  await subscribeAndProcess(
-    consumer,
-    [KAFKA_TOPICS.IOT_SENSOR_READINGS],
-    async (_topic, _key, value: any) => {
-      await prisma.iotSensorReading.create({
-        data: {
-          tenant_id: value.tenant_id,
-          asset_id: value.asset_id,
-          metric_name: value.metric_name,
-          value: value.value,
-          unit: value.unit,
-          zone_id: value.zone_id,
-          occurred_at: new Date(value.occurred_at),
-        },
-      }).catch(() => {});
-
-      // Energy readings get special treatment
-      if (value.sensor_type === 'energy' && value.zone_id) {
-        await prisma.energyReading.create({
+  if (process.env.KAFKA_ENABLED !== 'false') {
+    const consumer = createConsumer('venueiq-facilities');
+    await subscribeAndProcess(
+      consumer,
+      [KAFKA_TOPICS.IOT_SENSOR_READINGS],
+      async (_topic, _key, value: any) => {
+        await prisma.iotSensorReading.create({
           data: {
             tenant_id: value.tenant_id,
+            asset_id: value.asset_id,
+            metric_name: value.metric_name,
+            value: value.value,
+            unit: value.unit,
             zone_id: value.zone_id,
-            zone_name: value.zone_name ?? 'Unknown Zone',
-            kwh: value.value,
-            cost: value.value * 0.12, // $0.12/kWh default — configurable per venue
             occurred_at: new Date(value.occurred_at),
           },
         }).catch(() => {});
-      }
-    },
-  );
+        if (value.sensor_type === 'energy' && value.zone_id) {
+          await prisma.energyReading.create({
+            data: {
+              tenant_id: value.tenant_id,
+              zone_id: value.zone_id,
+              zone_name: value.zone_name ?? 'Unknown Zone',
+              kwh: value.value,
+              cost: value.value * 0.12,
+              occurred_at: new Date(value.occurred_at),
+            },
+          }).catch(() => {});
+        }
+      },
+    );
+  }
 
   const port = parseInt(process.env.PORT ?? '3008');
   await app.listen({ port, host: '0.0.0.0' });

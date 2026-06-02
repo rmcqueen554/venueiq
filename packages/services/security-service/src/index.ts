@@ -99,45 +99,47 @@ async function bootstrap() {
   });
 
   // ── Kafka Consumer ────────────────────────────────────────────────────────
-  const consumer = createConsumer('venueiq-security');
-  await subscribeAndProcess(
-    consumer,
-    [KAFKA_TOPICS.SECURITY_INCIDENTS, KAFKA_TOPICS.GATE_SCANS],
-    async (topic, _key, value: any) => {
-      if (topic === KAFKA_TOPICS.SECURITY_INCIDENTS) {
-        await prisma.securityIncident.create({
-          data: {
-            tenant_id: value.tenant_id,
-            event_id: value.event_id,
-            type: value.incident_type,
-            severity: value.severity,
-            location_description: value.location_description,
-            location_x: value.location_x,
-            location_y: value.location_y,
-            reported_at: new Date(value.occurred_at),
-            reported_by: value.reported_by,
-            description: value.incident_type,
-            actions_taken: [],
-            status: 'open',
-          },
-        }).catch(() => {}); // duplicate protection
-      } else if (topic === KAFKA_TOPICS.GATE_SCANS) {
-        await prisma.accessEvent.create({
-          data: {
-            tenant_id: value.tenant_id,
-            gate_id: value.gate_id,
-            gate_name: value.gate_name,
-            credential_id: value.credential_id,
-            fan_id: value.fan_id,
-            event_type: value.scan_type,
-            ticket_type: value.ticket_type,
-            section: value.section,
-            occurred_at: new Date(value.occurred_at),
-          },
-        }).catch(() => {});
-      }
-    },
-  );
+  if (process.env.KAFKA_ENABLED !== 'false') {
+    const consumer = createConsumer('venueiq-security');
+    await subscribeAndProcess(
+      consumer,
+      [KAFKA_TOPICS.SECURITY_INCIDENTS, KAFKA_TOPICS.GATE_SCANS],
+      async (topic, _key, value: any) => {
+        if (topic === KAFKA_TOPICS.SECURITY_INCIDENTS) {
+          await prisma.securityIncident.create({
+            data: {
+              tenant_id: value.tenant_id,
+              event_id: value.event_id,
+              type: value.incident_type,
+              severity: value.severity,
+              location_description: value.location_description,
+              location_x: value.location_x,
+              location_y: value.location_y,
+              reported_at: new Date(value.occurred_at),
+              reported_by: value.reported_by,
+              description: value.incident_type,
+              actions_taken: [],
+              status: 'open',
+            },
+          }).catch(() => {});
+        } else if (topic === KAFKA_TOPICS.GATE_SCANS) {
+          await prisma.accessEvent.create({
+            data: {
+              tenant_id: value.tenant_id,
+              gate_id: value.gate_id,
+              gate_name: value.gate_name,
+              credential_id: value.credential_id,
+              fan_id: value.fan_id,
+              event_type: value.scan_type,
+              ticket_type: value.ticket_type,
+              section: value.section,
+              occurred_at: new Date(value.occurred_at),
+            },
+          }).catch(() => {});
+        }
+      },
+    );
+  }
 
   const port = parseInt(process.env.PORT ?? '3009');
   await app.listen({ port, host: '0.0.0.0' });

@@ -86,39 +86,39 @@ async function bootstrap() {
   });
 
   // ── Kafka Consumer: ingest POS transactions ───────────────────────────────
-  const consumer = createConsumer('venueiq-concessions');
-  await subscribeAndProcess(
-    consumer,
-    [KAFKA_TOPICS.POS_TRANSACTIONS],
-    async (_topic, _key, value: PosTransactionEvent) => {
-      if (value.stand_type !== 'concessions') return;
-      await prisma.posTransaction.create({
-        data: {
-          tenant_id: value.tenant_id,
-          stand_id: value.stand_id,
-          event_id: value.event_id,
-          transaction_id: value.transaction_id,
-          items: value.items as any,
-          subtotal: value.subtotal,
-          tax: value.tax,
-          total: value.total,
-          payment_method: value.payment_method,
-          fan_id: value.fan_id ?? undefined,
-          operator_id: value.operator_id ?? undefined,
-          source_system: value.source_system,
-          occurred_at: new Date(value.occurred_at),
-        },
-      });
-
-      // Update inventory levels
-      for (const item of value.items) {
-        await prisma.inventoryLevel.updateMany({
-          where: { tenant_id: value.tenant_id, stand_id: value.stand_id, product_id: item.product_id },
-          data: { quantity: { decrement: item.quantity } },
+  if (process.env.KAFKA_ENABLED !== 'false') {
+    const consumer = createConsumer('venueiq-concessions');
+    await subscribeAndProcess(
+      consumer,
+      [KAFKA_TOPICS.POS_TRANSACTIONS],
+      async (_topic, _key, value: PosTransactionEvent) => {
+        if (value.stand_type !== 'concessions') return;
+        await prisma.posTransaction.create({
+          data: {
+            tenant_id: value.tenant_id,
+            stand_id: value.stand_id,
+            event_id: value.event_id,
+            transaction_id: value.transaction_id,
+            items: value.items as any,
+            subtotal: value.subtotal,
+            tax: value.tax,
+            total: value.total,
+            payment_method: value.payment_method,
+            fan_id: value.fan_id ?? undefined,
+            operator_id: value.operator_id ?? undefined,
+            source_system: value.source_system,
+            occurred_at: new Date(value.occurred_at),
+          },
         });
-      }
-    },
-  );
+        for (const item of value.items) {
+          await prisma.inventoryLevel.updateMany({
+            where: { tenant_id: value.tenant_id, stand_id: value.stand_id, product_id: item.product_id },
+            data: { quantity: { decrement: item.quantity } },
+          });
+        }
+      },
+    );
+  }
 
   const port = parseInt(process.env.PORT ?? '3003');
   await app.listen({ port, host: '0.0.0.0' });

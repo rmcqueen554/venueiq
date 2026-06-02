@@ -62,44 +62,44 @@ async function bootstrap() {
   });
 
   // ── Kafka Consumer ────────────────────────────────────────────────────────
-  const consumer = createConsumer('venueiq-parking');
-  await subscribeAndProcess(
-    consumer,
-    [KAFKA_TOPICS.PARKING_ENTRIES],
-    async (_topic, _key, value: any) => {
-      if (value.entry_type === 'entry') {
-        await prisma.parkingTransaction.create({
-          data: {
-            tenant_id: value.tenant_id,
-            lot_id: value.lot_id,
-            event_id: value.event_id,
-            external_txn_id: value.transaction_id,
-            entry_time: new Date(value.occurred_at),
-            revenue: value.revenue,
-            vehicle_type: value.vehicle_type,
-            pre_sold: value.pre_sold,
-          },
-        }).catch(() => {});
-      }
-
-      // Update occupancy
-      const lot = await prisma.parkingLot.findUnique({ where: { id: value.lot_id } });
-      if (lot) {
-        const currentOccupied = await prisma.parkingTransaction.count({
-          where: { tenant_id: value.tenant_id, lot_id: value.lot_id, exit_time: null },
-        });
-        await prisma.parkingOccupancy.create({
-          data: {
-            tenant_id: value.tenant_id,
-            lot_id: value.lot_id,
-            occupied_spaces: currentOccupied,
-            fill_pct: currentOccupied / lot.total_spaces,
-            occurred_at: new Date(value.occurred_at),
-          },
-        }).catch(() => {});
-      }
-    },
-  );
+  if (process.env.KAFKA_ENABLED !== 'false') {
+    const consumer = createConsumer('venueiq-parking');
+    await subscribeAndProcess(
+      consumer,
+      [KAFKA_TOPICS.PARKING_ENTRIES],
+      async (_topic, _key, value: any) => {
+        if (value.entry_type === 'entry') {
+          await prisma.parkingTransaction.create({
+            data: {
+              tenant_id: value.tenant_id,
+              lot_id: value.lot_id,
+              event_id: value.event_id,
+              external_txn_id: value.transaction_id,
+              entry_time: new Date(value.occurred_at),
+              revenue: value.revenue,
+              vehicle_type: value.vehicle_type,
+              pre_sold: value.pre_sold,
+            },
+          }).catch(() => {});
+        }
+        const lot = await prisma.parkingLot.findUnique({ where: { id: value.lot_id } });
+        if (lot) {
+          const currentOccupied = await prisma.parkingTransaction.count({
+            where: { tenant_id: value.tenant_id, lot_id: value.lot_id, exit_time: null },
+          });
+          await prisma.parkingOccupancy.create({
+            data: {
+              tenant_id: value.tenant_id,
+              lot_id: value.lot_id,
+              occupied_spaces: currentOccupied,
+              fill_pct: currentOccupied / lot.total_spaces,
+              occurred_at: new Date(value.occurred_at),
+            },
+          }).catch(() => {});
+        }
+      },
+    );
+  }
 
   const port = parseInt(process.env.PORT ?? '3010');
   await app.listen({ port, host: '0.0.0.0' });
