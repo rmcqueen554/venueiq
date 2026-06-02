@@ -1,0 +1,171 @@
+version: '3.9'
+
+services:
+  # ── Databases (one per microservice) ──────────────────────────────────────
+  db-tenants:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_tenants }
+    ports: ['5432:5432']
+    volumes: ['db-tenants:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-executive:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_executive }
+    ports: ['5433:5432']
+    volumes: ['db-executive:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-concessions:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_concessions }
+    ports: ['5434:5432']
+    volumes: ['db-concessions:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-merchandise:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_merchandise }
+    ports: ['5435:5432']
+    volumes: ['db-merchandise:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-ticketing:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_ticketing }
+    ports: ['5436:5432']
+    volumes: ['db-ticketing:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-sponsorship:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_sponsorship }
+    ports: ['5437:5432']
+    volumes: ['db-sponsorship:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-operations:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_operations }
+    ports: ['5438:5432']
+    volumes: ['db-operations:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-facilities:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_facilities }
+    ports: ['5439:5432']
+    volumes: ['db-facilities:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-security:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_security }
+    ports: ['5440:5432']
+    volumes: ['db-security:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-parking:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_parking }
+    ports: ['5441:5432']
+    volumes: ['db-parking:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-fans:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_fans }
+    ports: ['5442:5432']
+    volumes: ['db-fans:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-agents:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_agents }
+    ports: ['5443:5432']
+    volumes: ['db-agents:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-nlq:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_nlq }
+    ports: ['5444:5432']
+    volumes: ['db-nlq:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-automation:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_automation }
+    ports: ['5445:5432']
+    volumes: ['db-automation:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  db-reporting:
+    image: timescale/timescaledb:latest-pg16
+    environment: { POSTGRES_USER: venueiq, POSTGRES_PASSWORD: venueiq, POSTGRES_DB: venueiq_reporting }
+    ports: ['5446:5432']
+    volumes: ['db-reporting:/var/lib/postgresql/data']
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U venueiq'], interval: 5s, retries: 5 }
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+    volumes: ['redis:/data']
+    command: redis-server --appendonly yes
+    healthcheck: { test: ['CMD', 'redis-cli', 'ping'], interval: 5s, retries: 5 }
+
+  # ── Kafka + Zookeeper ─────────────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports: ['2181:2181']
+    volumes: ['zookeeper-data:/var/lib/zookeeper/data', 'zookeeper-log:/var/lib/zookeeper/log']
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on: [zookeeper]
+    ports: ['9092:9092', '29092:29092']
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes: ['kafka:/var/lib/kafka/data']
+    healthcheck:
+      test: ['CMD', 'kafka-broker-api-versions', '--bootstrap-server', 'localhost:9092']
+      interval: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on: [kafka]
+    ports: ['8080:8080']
+    environment:
+      KAFKA_CLUSTERS_0_NAME: venueiq-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  # ── Elasticsearch ─────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+    ports: ['9200:9200']
+    volumes: ['elasticsearch:/usr/share/elasticsearch/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
+      interval: 15s
+      retries: 10
+
+volumes:
+  db-tenants: db-executive: db-concessions: db-merchandise: db-ticketing:
+  db-sponsorship: db-operations: db-facilities: db-security: db-parking:
+  db-fans: db-agents: db-nlq: db-automation: db-reporting:
+  redis: kafka: zookeeper-data: zookeeper-log: elasticsearch:

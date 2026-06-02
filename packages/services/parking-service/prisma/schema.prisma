@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PARKING_DATABASE_URL")
+}
+
+model ParkingLot {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  name         String
+  total_spaces Int
+  type         String   @default("surface") // surface|garage
+  location_x   Float    @default(0)
+  location_y   Float    @default(0)
+  entry_gates  Json     @default("[]") // string[]
+  active       Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @updatedAt @db.Timestamptz
+
+  transactions   ParkingTransaction[]
+  occupancy_logs ParkingOccupancy[]
+
+  @@index([tenant_id])
+  @@map("parking_lots")
+}
+
+model ParkingTransaction {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String    @db.Uuid
+  lot_id           String    @db.Uuid
+  event_id         String    @db.Uuid
+  external_txn_id  String?
+  entry_time       DateTime  @db.Timestamptz
+  exit_time        DateTime? @db.Timestamptz
+  duration_minutes Int?
+  revenue          Decimal?  @db.Decimal(10, 2)
+  vehicle_type     String    @default("car")
+  pre_sold         Boolean   @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamptz
+
+  lot ParkingLot @relation(fields: [lot_id], references: [id])
+
+  @@index([tenant_id, lot_id, entry_time])
+  @@index([tenant_id, event_id])
+  @@map("parking_transactions")
+}
+
+// TimescaleDB hypertable
+model ParkingOccupancy {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  lot_id          String   @db.Uuid
+  occupied_spaces Int
+  fill_pct        Float
+  occurred_at     DateTime @db.Timestamptz
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  lot ParkingLot @relation(fields: [lot_id], references: [id])
+
+  @@index([tenant_id, lot_id, occurred_at])
+  @@map("parking_occupancy")
+}
+
+// TimescaleDB hypertable
+model ApproachTraffic {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id            String   @db.Uuid
+  route_name           String
+  congestion_level     Int      // 0-100
+  travel_time_minutes  Float
+  occurred_at          DateTime @db.Timestamptz
+  created_at           DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, route_name, occurred_at])
+  @@map("approach_traffic")
+}
+
+model ParkingPricingRecommendation {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id             String    @db.Uuid
+  event_id              String    @db.Uuid
+  lot_id                String    @db.Uuid
+  current_price         Decimal   @db.Decimal(10, 2)
+  recommended_price     Decimal   @db.Decimal(10, 2)
+  rationale             String
+  expected_revenue_lift Decimal   @db.Decimal(10, 2)
+  approved_by           String?
+  applied_at            DateTime? @db.Timestamptz
+  expires_at            DateTime  @db.Timestamptz
+  created_at            DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("parking_pricing_recommendations")
+}

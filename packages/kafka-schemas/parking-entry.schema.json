@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ParkingEntryEvent",
+  "type": "object",
+  "required": ["schema_version","tenant_id","event_id","lot_id","transaction_id","entry_type","vehicle_type","pre_sold","occurred_at"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "lot_id": { "type": "string", "format": "uuid" },
+    "transaction_id": { "type": "string" },
+    "entry_type": { "type": "string", "enum": ["entry","exit"] },
+    "vehicle_type": { "type": "string", "enum": ["car","truck","motorcycle","bus"] },
+    "revenue": { "type": ["number","null"] },
+    "pre_sold": { "type": "boolean" },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

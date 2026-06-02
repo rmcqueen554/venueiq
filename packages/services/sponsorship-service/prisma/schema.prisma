@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SPONSORSHIP_DATABASE_URL")
+}
+
+model Sponsor {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  name            String
+  tier            String   // title|presenting|associate|supporting
+  logo_url        String?
+  contact_email   String?
+  contact_name    String?
+  contract_value  Decimal  @db.Decimal(12, 2)
+  contract_start  DateTime @db.Timestamptz
+  contract_end    DateTime @db.Timestamptz
+  renewal_status  String   @default("active") // active|pending_renewal|at_risk|lapsed
+  health_score    Float    @default(0.8)
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @updatedAt @db.Timestamptz
+
+  contracts    SponsorshipContract[]
+  activations  Activation[]
+  roi_records  SponsorRoi[]
+
+  @@index([tenant_id])
+  @@index([tenant_id, renewal_status])
+  @@map("sponsors")
+}
+
+model SponsorshipContract {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  sponsor_id   String   @db.Uuid
+  deliverables Json     // SponsorDeliverable[]
+  total_value  Decimal  @db.Decimal(12, 2)
+  signed_date  DateTime @db.Timestamptz
+  document_url String?
+  notes        String?
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @updatedAt @db.Timestamptz
+
+  sponsor Sponsor @relation(fields: [sponsor_id], references: [id])
+
+  @@index([tenant_id, sponsor_id])
+  @@map("sponsorship_contracts")
+}
+
+model Activation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String    @db.Uuid
+  sponsor_id  String    @db.Uuid
+  event_id    String    @db.Uuid
+  type        String    // led_board|pa_announcement|in_venue_signage|social_post|mobile_push|vip_hospitality|video_board
+  scheduled   Boolean   @default(true)
+  completed   Boolean   @default(false)
+  proof_url   String?
+  impressions Int?
+  notes       String?
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+
+  sponsor Sponsor @relation(fields: [sponsor_id], references: [id])
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, sponsor_id])
+  @@map("activations")
+}
+
+model SponsorshipInventory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  name            String
+  type            String   // naming_rights|jersey_patch|led_board|pa_slot|website_banner|mobile_app|suite_access|field_access
+  location        String?
+  estimated_value Decimal  @db.Decimal(10, 2)
+  occupied_by     String?  @db.Uuid // sponsor_id nullable
+  notes           String?
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @updatedAt @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("sponsorship_inventory")
+}
+
+model SponsorRoi {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id              String   @db.Uuid
+  sponsor_id             String   @db.Uuid
+  event_id               String   @db.Uuid
+  contracted_value       Decimal  @db.Decimal(10, 2)
+  delivered_value        Decimal  @db.Decimal(10, 2)
+  delivery_rate          Float
+  media_value_estimate   Decimal  @db.Decimal(10, 2)
+  audience_reached       Int?
+  impressions_delivered  Int?
+  satisfaction_score     Float?
+  created_at             DateTime @default(now()) @db.Timestamptz
+
+  sponsor Sponsor @relation(fields: [sponsor_id], references: [id])
+
+  @@unique([tenant_id, sponsor_id, event_id])
+  @@index([tenant_id])
+  @@map("sponsor_roi")
+}

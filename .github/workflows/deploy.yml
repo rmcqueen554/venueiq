@@ -1,0 +1,142 @@
+name: VenueIQ — Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  EKS_CLUSTER: venueiq-production
+
+jobs:
+  # ── Lint & Type Check ─────────────────────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+  # ── Test ──────────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: test, POSTGRES_DB: venueiq_test }
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm run test
+        env:
+          TENANTS_DATABASE_URL: postgresql://postgres:test@localhost:5432/venueiq_test
+          REDIS_URL: redis://localhost:6379
+
+  # ── Build & Push Docker Images ────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service:
+          - tenant-service
+          - executive-service
+          - concessions-service
+          - merchandise-service
+          - ticketing-service
+          - sponsorship-service
+          - operations-service
+          - facilities-service
+          - security-service
+          - parking-service
+          - fan-experience-service
+          - agents-service
+          - nlq-service
+          - automation-service
+          - reporting-service
+          - realtime-service
+          - ml-service
+          - frontend
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.service == 'ml-service' && 'packages/ml-service/Dockerfile' || 'packages/services/${{ matrix.service }}/Dockerfile' }}
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/venueiq-${{ matrix.service }}:latest
+            ${{ env.ECR_REGISTRY }}/venueiq-${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy to EKS ─────────────────────────────────────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infrastructure/kubernetes/namespaces.yaml
+          kubectl apply -f infrastructure/kubernetes/services/
+          kubectl apply -f infrastructure/kubernetes/ingress.yaml
+
+      - name: Rolling restart (pick up new images)
+        run: |
+          kubectl rollout restart deployment -n venueiq-services
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment -n venueiq-services --timeout=300s
+
+      - name: Notify Slack on success
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ VenueIQ deployed to production — commit ${{ github.sha }} by ${{ github.actor }}"}' \
+            ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ VenueIQ deploy FAILED — commit ${{ github.sha }} — check Actions log"}' \
+            ${{ secrets.SLACK_DEPLOY_WEBHOOK }}

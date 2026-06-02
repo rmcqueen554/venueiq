@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTOMATION_DATABASE_URL")
+}
+
+model AutomationRule {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String    @db.Uuid
+  name            String
+  description     String?
+  trigger_type    String    // kpi_threshold|schedule|event_lifecycle|manual|agent_output
+  trigger_config  Json
+  condition_logic String    @default("AND") // AND|OR
+  conditions      Json      @default("[]")
+  action_type     String    // notify|generate_report|create_task|webhook|update_record
+  action_config   Json
+  active          Boolean   @default(true)
+  is_template     Boolean   @default(false)
+  last_triggered_at DateTime? @db.Timestamptz
+  trigger_count   Int       @default(0)
+  created_by      String    // Clerk user ID
+  created_at      DateTime  @default(now()) @db.Timestamptz
+  updated_at      DateTime  @updatedAt @db.Timestamptz
+
+  executions AutomationExecution[]
+
+  @@index([tenant_id, active])
+  @@map("automation_rules")
+}
+
+model AutomationExecution {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String   @db.Uuid
+  rule_id     String   @db.Uuid
+  status      String   // success|failed|skipped
+  trigger_data Json?
+  result      Json?
+  error       String?
+  duration_ms Int?
+  executed_at DateTime @db.Timestamptz
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  rule AutomationRule @relation(fields: [rule_id], references: [id])
+
+  @@index([tenant_id, rule_id])
+  @@index([tenant_id, executed_at])
+  @@map("automation_executions")
+}

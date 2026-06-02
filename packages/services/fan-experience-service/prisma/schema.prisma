@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("FANS_DATABASE_URL")
+}
+
+model FanProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String    @db.Uuid
+  external_crm_id     String?
+  email               String?
+  phone               String?
+  loyalty_tier        String?   // bronze|silver|gold|platinum
+  lifetime_value      Decimal   @default(0) @db.Decimal(12, 2)
+  first_purchase_date DateTime? @db.Timestamptz
+  last_purchase_date  DateTime? @db.Timestamptz
+  renewal_score       Float?
+  demographic         Json?     // { age_group, gender, geography, income_bracket }
+  preferences         Json?     // fan preferences
+  persona_cluster     String?   // ML-assigned persona cluster
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+
+  interactions  FanInteraction[]
+  nps_responses NpsResponse[]
+  suite_bookings SuiteBooking[]
+  loyalty_tier_record LoyaltyTier?
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+  @@index([tenant_id, loyalty_tier])
+  @@map("fan_profiles")
+}
+
+model FanInteraction {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  fan_id     String   @db.Uuid
+  type       String   // purchase|complaint|survey|app_session|social_mention
+  data       Json
+  event_id   String?  @db.Uuid
+  occurred_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  fan FanProfile @relation(fields: [fan_id], references: [id])
+
+  @@index([tenant_id, fan_id])
+  @@index([tenant_id, type, occurred_at])
+  @@map("fan_interactions")
+}
+
+model NpsResponse {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String   @db.Uuid
+  event_id    String   @db.Uuid
+  fan_id      String?  @db.Uuid
+  score       Int      // 0-10
+  verbatim    String?
+  category    String?  // parking|concessions|security|entertainment|seating|app
+  sentiment   String   @default("neutral") // positive|neutral|negative
+  occurred_at DateTime @db.Timestamptz
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  fan FanProfile? @relation(fields: [fan_id], references: [id])
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, occurred_at])
+  @@map("nps_responses")
+}
+
+model SuiteBooking {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  event_id        String   @db.Uuid
+  suite_id        String
+  suite_name      String
+  booked_by       String   @db.Uuid // fan_id
+  catering_order  Json?
+  status          String   @default("confirmed") // confirmed|pending|cancelled
+  revenue         Decimal  @db.Decimal(10, 2)
+  headcount       Int?
+  special_requests String?
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @updatedAt @db.Timestamptz
+
+  fan FanProfile @relation(fields: [booked_by], references: [id])
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, booked_by])
+  @@map("suite_bookings")
+}
+
+model AppSession {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String   @db.Uuid
+  fan_id         String?  @db.Uuid
+  event_id       String?  @db.Uuid
+  session_start  DateTime @db.Timestamptz
+  session_end    DateTime? @db.Timestamptz
+  features_used  Json     @default("[]") // string[]
+  in_app_revenue Decimal  @default(0) @db.Decimal(10, 2)
+  platform       String   @default("ios") // ios|android|web
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, fan_id])
+  @@map("app_sessions")
+}
+
+model LoyaltyTier {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id          String   @db.Uuid
+  fan_id             String   @unique @db.Uuid
+  tier               String   // bronze|silver|gold|platinum
+  points             Int      @default(0)
+  qualifying_events  Int      @default(0)
+  tier_expiry        DateTime @db.Timestamptz
+  created_at         DateTime @default(now()) @db.Timestamptz
+  updated_at         DateTime @updatedAt @db.Timestamptz
+
+  fan FanProfile @relation(fields: [fan_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([tenant_id, tier])
+  @@map("loyalty_tiers")
+}
+
+model SocialMention {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  event_id     String?  @db.Uuid
+  platform     String   // twitter_x|instagram|facebook|tiktok
+  content      String
+  sentiment    String   @default("neutral") // positive|neutral|negative
+  reach        Int      @default(0)
+  author_handle String?
+  url          String?
+  occurred_at  DateTime @db.Timestamptz
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, sentiment, occurred_at])
+  @@map("social_mentions")
+}

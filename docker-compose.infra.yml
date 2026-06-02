@@ -1,0 +1,29 @@
+version: '3.9'
+
+# Additional infra services for local dev: LocalStack (AWS emulator), Redshift emulator
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports: ['4566:4566', '4510-4559:4510-4559']
+    environment:
+      SERVICES: s3,secretsmanager,iot
+      DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      LOCALSTACK_API_KEY: ''
+    volumes:
+      - localstack:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # Redshift emulator (use pg-based for local dev)
+  redshift-local:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: venueiq
+      POSTGRES_PASSWORD: venueiq
+      POSTGRES_DB: venueiq_warehouse
+    ports: ['5460:5432']
+    volumes: ['redshift-local:/var/lib/postgresql/data']
+
+volumes:
+  localstack:
+  redshift-local:

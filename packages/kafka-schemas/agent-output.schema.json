@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentOutputEvent",
+  "type": "object",
+  "required": ["schema_version","tenant_id","agent_name","output_type","title","body","requires_approval","auto_executed","occurred_at"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "agent_name": { "type": "string" },
+    "output_type": { "type": "string", "enum": ["recommendation","alert","report","automation"] },
+    "severity": { "type": ["string","null"], "enum": ["critical","high","medium","low","info",null] },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "data": { "type": ["object","null"] },
+    "requires_approval": { "type": "boolean" },
+    "auto_executed": { "type": "boolean" },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

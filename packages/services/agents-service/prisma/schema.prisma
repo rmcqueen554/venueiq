@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AGENTS_DATABASE_URL")
+}
+
+model AgentOutput {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String    @db.Uuid
+  agent_name       String    // AgentName enum
+  output_type      String    // recommendation|alert|report|automation
+  severity         String?   // critical|high|medium|low|info
+  title            String
+  body             String
+  data             Json?
+  requires_approval Boolean  @default(false)
+  approved_by      String?   // Clerk user ID
+  approved_at      DateTime? @db.Timestamptz
+  rejected_by      String?
+  rejected_at      DateTime? @db.Timestamptz
+  auto_executed    Boolean   @default(false)
+  executed_at      DateTime? @db.Timestamptz
+  event_id         String?   @db.Uuid
+  created_at       DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, agent_name])
+  @@index([tenant_id, requires_approval, approved_at])
+  @@index([tenant_id, created_at])
+  @@map("agent_outputs")
+}
+
+model ClaudeApiCallLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String   @db.Uuid
+  service         String   // agent name or service name
+  model           String
+  input_tokens    Int
+  output_tokens   Int
+  cost_usd        Decimal  @db.Decimal(10, 6)
+  prompt_hash     String   // SHA256 of system prompt for deduplication
+  response_length Int
+  latency_ms      Int
+  event_id        String?  @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, created_at])
+  @@index([tenant_id, service])
+  @@map("claude_api_call_logs")
+}
+
+model AgentSchedule {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String    @db.Uuid
+  agent_name   String
+  cron_expr    String
+  last_run_at  DateTime? @db.Timestamptz
+  next_run_at  DateTime? @db.Timestamptz
+  active       Boolean   @default(true)
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  updated_at   DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([tenant_id, agent_name])
+  @@map("agent_schedules")
+}

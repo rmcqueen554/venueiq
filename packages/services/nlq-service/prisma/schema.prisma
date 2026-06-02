@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NLQ_DATABASE_URL")
+}
+
+model NlqQuery {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String   @db.Uuid
+  user_id          String   // Clerk user ID
+  user_role        String
+  question         String
+  generated_sql    String?
+  execution_time_ms Int?
+  rows_returned    Int?
+  response         String
+  token_count      Int?
+  cost_usd         Decimal? @db.Decimal(8, 6)
+  session_id       String
+  context_page     String?
+  cached           Boolean  @default(false)
+  created_at       DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, user_id])
+  @@index([tenant_id, created_at])
+  @@map("nlq_queries")
+}
+
+model NlqCache {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String   @db.Uuid
+  question_hash String
+  response    String
+  sql_used    String?
+  expires_at  DateTime @db.Timestamptz
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  @@unique([tenant_id, question_hash])
+  @@map("nlq_cache")
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String   @db.Uuid
+  title       String
+  content     String
+  doc_type    String   // floor_plan|sop|contact_directory|vendor|policy
+  pinecone_id String?
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+
+  @@index([tenant_id])
+  @@map("knowledge_documents")
+}

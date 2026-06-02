@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CONCESSIONS_DATABASE_URL")
+}
+
+model Stand {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @db.Uuid
+  venue_id          String   @db.Uuid
+  name              String
+  location_x        Float    @default(0)
+  location_y        Float    @default(0)
+  type              String   @default("concessions") // concessions|bar|kiosk
+  capacity_per_hour Int      @default(60)
+  active            Boolean  @default(true)
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @updatedAt @db.Timestamptz
+
+  inventory_levels   InventoryLevel[]
+  concession_forecasts ConcessionForecast[]
+  waste_records      WasteRecord[]
+  staff_assignments  StaffAssignment[]
+
+  @@index([tenant_id])
+  @@map("stands")
+}
+
+model Product {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  name       String
+  category   String   // beer|spirits|wine|non_alcoholic|food|snack|other
+  price      Decimal  @db.Decimal(10, 2)
+  cost       Decimal  @db.Decimal(10, 2)
+  sku        String
+  active     Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  inventory_levels     InventoryLevel[]
+  concession_forecasts ConcessionForecast[]
+  waste_records        WasteRecord[]
+
+  @@unique([tenant_id, sku])
+  @@index([tenant_id])
+  @@map("products")
+}
+
+model InventoryLevel {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  stand_id   String   @db.Uuid
+  product_id String   @db.Uuid
+  quantity   Int      @default(0)
+  par_level  Int      @default(50)
+  updated_at DateTime @updatedAt @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  stand   Stand   @relation(fields: [stand_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@unique([tenant_id, stand_id, product_id])
+  @@index([tenant_id])
+  @@map("inventory_levels")
+}
+
+model PosTransaction {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String   @db.Uuid
+  stand_id       String   @db.Uuid
+  event_id       String   @db.Uuid
+  transaction_id String
+  items          Json     // PosLineItem[]
+  subtotal       Decimal  @db.Decimal(10, 2)
+  tax            Decimal  @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  payment_method String
+  fan_id         String?  @db.Uuid
+  operator_id    String?
+  source_system  String
+  occurred_at    DateTime @db.Timestamptz
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, stand_id, occurred_at])
+  @@index([tenant_id, occurred_at])
+  @@map("pos_transactions")
+}
+
+model ConcessionForecast {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String   @db.Uuid
+  event_id          String   @db.Uuid
+  stand_id          String   @db.Uuid
+  product_id        String   @db.Uuid
+  forecasted_units  Int
+  forecasted_revenue Decimal @db.Decimal(10, 2)
+  confidence        Float    @default(0.8)
+  model_version     String
+  created_at        DateTime @default(now()) @db.Timestamptz
+
+  stand   Stand   @relation(fields: [stand_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@unique([tenant_id, event_id, stand_id, product_id])
+  @@index([tenant_id, event_id])
+  @@map("concession_forecasts")
+}
+
+model WasteRecord {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  event_id     String   @db.Uuid
+  stand_id     String   @db.Uuid
+  product_id   String   @db.Uuid
+  units_wasted Int
+  cost_of_waste Decimal @db.Decimal(10, 2)
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  stand   Stand   @relation(fields: [stand_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@index([tenant_id, event_id])
+  @@map("waste_records")
+}
+
+model StaffAssignment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String    @db.Uuid
+  event_id       String    @db.Uuid
+  stand_id       String    @db.Uuid
+  employee_id    String
+  scheduled_start DateTime  @db.Timestamptz
+  scheduled_end   DateTime  @db.Timestamptz
+  actual_start    DateTime? @db.Timestamptz
+  actual_end      DateTime? @db.Timestamptz
+  hourly_rate     Decimal   @db.Decimal(8, 2)
+  created_at      DateTime  @default(now()) @db.Timestamptz
+  updated_at      DateTime  @updatedAt @db.Timestamptz
+
+  stand Stand @relation(fields: [stand_id], references: [id])
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, stand_id])
+  @@map("staff_assignments")
+}
+
+model DynamicPricingRecommendation {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id              String    @db.Uuid
+  event_id               String    @db.Uuid
+  stand_id               String    @db.Uuid
+  product_id             String    @db.Uuid
+  current_price          Decimal   @db.Decimal(10, 2)
+  recommended_price      Decimal   @db.Decimal(10, 2)
+  rationale              String
+  expected_revenue_lift  Decimal   @db.Decimal(10, 2)
+  approved_by            String?
+  applied_at             DateTime? @db.Timestamptz
+  rejected_at            DateTime? @db.Timestamptz
+  expires_at             DateTime  @db.Timestamptz
+  created_at             DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("dynamic_pricing_recommendations")
+}

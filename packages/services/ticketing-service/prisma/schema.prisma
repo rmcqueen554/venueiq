@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TICKETING_DATABASE_URL")
+}
+
+model TicketSale {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String    @db.Uuid
+  event_id    String    @db.Uuid
+  section     String
+  row         String?
+  seat        String?
+  price       Decimal   @db.Decimal(10, 2)
+  ticket_type String    // general|premium|suite|standing|vip|group|comp
+  fan_id      String?   @db.Uuid
+  sold_at     DateTime  @db.Timestamptz
+  scanned_at  DateTime? @db.Timestamptz
+  source      String    @default("primary") // primary|secondary|comp
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@index([tenant_id, fan_id])
+  @@index([tenant_id, sold_at])
+  @@map("ticket_sales")
+}
+
+model FanProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String    @db.Uuid
+  external_crm_id     String?
+  email               String?
+  loyalty_tier        String?   // bronze|silver|gold|platinum
+  lifetime_value      Decimal   @default(0) @db.Decimal(12, 2)
+  first_purchase_date DateTime? @db.Timestamptz
+  last_purchase_date  DateTime? @db.Timestamptz
+  renewal_score       Float?
+  demographic         Json?
+  preferences         Json?
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+
+  season_tickets SeasonTicket[]
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+  @@index([tenant_id, loyalty_tier])
+  @@map("fan_profiles")
+}
+
+model SeasonTicket {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                String   @db.Uuid
+  fan_id                   String   @db.Uuid
+  section                  String
+  seats                    String[]
+  tier                     String   // bronze|silver|gold|platinum
+  renewal_status           String   @default("pending") // renewed|pending|at_risk|lapsed
+  renewal_likelihood_score Float    @default(0.5)
+  account_value            Decimal  @db.Decimal(12, 2)
+  renewal_date             DateTime @db.Timestamptz
+  usage_rate               Float    @default(1.0)
+  created_at               DateTime @default(now()) @db.Timestamptz
+  updated_at               DateTime @updatedAt @db.Timestamptz
+
+  fan FanProfile @relation(fields: [fan_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([tenant_id, renewal_status])
+  @@index([tenant_id, renewal_likelihood_score])
+  @@map("season_tickets")
+}
+
+model PricingRecommendation {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id             String    @db.Uuid
+  event_id              String    @db.Uuid
+  section               String
+  current_price         Decimal   @db.Decimal(10, 2)
+  recommended_price     Decimal   @db.Decimal(10, 2)
+  expected_revenue_lift Decimal   @db.Decimal(10, 2)
+  rationale             String
+  secondary_market_price Decimal? @db.Decimal(10, 2)
+  approved_by           String?
+  applied_at            DateTime? @db.Timestamptz
+  rejected_at           DateTime? @db.Timestamptz
+  expires_at            DateTime  @db.Timestamptz
+  created_at            DateTime  @default(now()) @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("pricing_recommendations")
+}
+
+model AttendanceForecast {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id             String   @db.Uuid
+  event_id              String   @db.Uuid
+  forecasted_attendance Int
+  confidence_lower      Int
+  confidence_upper      Int
+  no_show_rate          Float    @default(0.05)
+  model_version         String
+  key_variables         Json
+  created_at            DateTime @default(now()) @db.Timestamptz
+
+  @@unique([tenant_id, event_id])
+  @@index([tenant_id])
+  @@map("attendance_forecasts")
+}
+
+model GroupSalesOpportunity {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String    @db.Uuid
+  event_id        String    @db.Uuid
+  account_name    String
+  crm_account_id  String?
+  seats_available Int
+  estimated_value Decimal   @db.Decimal(10, 2)
+  status          String    @default("open") // open|contacted|converted|lost
+  notes           String?
+  created_at      DateTime  @default(now()) @db.Timestamptz
+  updated_at      DateTime  @updatedAt @db.Timestamptz
+
+  @@index([tenant_id, event_id])
+  @@map("group_sales_opportunities")
+}

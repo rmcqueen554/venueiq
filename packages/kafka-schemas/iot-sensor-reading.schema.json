@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IoTSensorReadingEvent",
+  "type": "object",
+  "required": ["schema_version","tenant_id","asset_id","sensor_type","metric_name","value","unit","occurred_at"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "asset_id": { "type": "string", "format": "uuid" },
+    "sensor_type": { "type": "string", "enum": ["hvac","energy","elevator","generator","scoreboard","motion","smoke","crowd_counter"] },
+    "metric_name": { "type": "string" },
+    "value": { "type": "number" },
+    "unit": { "type": "string" },
+    "zone_id": { "type": ["string","null"] },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

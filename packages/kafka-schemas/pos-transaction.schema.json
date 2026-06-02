@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PosTransactionEvent",
+  "description": "Real-time POS transaction from any connected POS system",
+  "type": "object",
+  "required": ["schema_version","tenant_id","event_id","transaction_id","stand_id","stand_type","items","subtotal","tax","total","payment_method","source_system","occurred_at"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "transaction_id": { "type": "string" },
+    "stand_id": { "type": "string", "format": "uuid" },
+    "stand_type": { "type": "string", "enum": ["concessions","merchandise"] },
+    "operator_id": { "type": ["string","null"] },
+    "fan_id": { "type": ["string","null"] },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["product_id","product_name","sku","quantity","unit_price","line_total","category"],
+        "properties": {
+          "product_id": { "type": "string" },
+          "product_name": { "type": "string" },
+          "sku": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "unit_price": { "type": "number", "minimum": 0 },
+          "line_total": { "type": "number", "minimum": 0 },
+          "category": { "type": "string" }
+        }
+      }
+    },
+    "subtotal": { "type": "number", "minimum": 0 },
+    "tax": { "type": "number", "minimum": 0 },
+    "total": { "type": "number", "minimum": 0 },
+    "payment_method": { "type": "string", "enum": ["card","cash","mobile","tab"] },
+    "source_system": { "type": "string" },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

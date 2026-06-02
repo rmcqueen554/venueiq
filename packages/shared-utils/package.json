@@ -1,0 +1,27 @@
+{
+  "name": "@venueiq/shared-utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@venueiq/shared-types": "*",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "kafkajs": "^2.2.4",
+    "ioredis": "^5.3.2",
+    "pino": "^9.1.0",
+    "@prisma/client": "^5.14.0",
+    "nodemailer": "^6.9.13",
+    "axios": "^1.7.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "@types/nodemailer": "^6.4.15",
+    "prisma": "^5.14.0"
+  }
+}
