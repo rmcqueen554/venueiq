@@ -6,7 +6,7 @@ services:
     plan: free
     branch: main
     rootDir: packages/services/api
-    buildCommand: npm install --legacy-peer-deps --no-fund --no-package-lock && npx prisma generate
+    buildCommand: npm install --legacy-peer-deps --no-fund --no-package-lock && DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate
     startCommand: npx tsx src/index.ts
     healthCheckPath: /health
     envVars:
@@ -16,5 +16,4 @@ services:
         value: 10000
       - key: KAFKA_ENABLED
         value: "false"
-      # Sensitive vars (DATABASE_URL, CLERK_SECRET_KEY, ANTHROPIC_API_KEY, etc.)
-      # are set directly on the Render service via dashboard or API — not stored here.
+      # DATABASE_URL, CLERK_SECRET_KEY, ANTHROPIC_API_KEY set via Render dashboard
