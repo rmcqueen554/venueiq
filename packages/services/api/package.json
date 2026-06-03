@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev":        "tsx watch src/index.ts",
-    "start":      "tsx src/index.ts",
-    "db:push":    "prisma db push --skip-generate",
-    "db:generate":"prisma generate"
+    "dev":         "tsx watch src/index.ts",
+    "start":       "tsx src/index.ts",
+    "db:push":     "prisma db push --skip-generate",
+    "db:generate": "prisma generate",
+    "postinstall": "DATABASE_URL=postgresql://build:build@localhost/build prisma generate"
   },
   "dependencies": {
     "fastify":               "^4.27.0",
