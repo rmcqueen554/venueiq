@@ -6,7 +6,7 @@ services:
     plan: free
     branch: main
     rootDir: packages/services/api
-    buildCommand: npm install --legacy-peer-deps --no-fund && npx prisma generate
+    buildCommand: npm install --legacy-peer-deps --no-fund --no-package-lock && npx prisma generate
     startCommand: npx tsx src/index.ts
     healthCheckPath: /health
     envVars:
@@ -14,17 +14,7 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: DATABASE_URL
-        value: postgresql://postgres.ndkzfsipkbnstmkzxjfo:VenueIQ_A%26Qf%7Bz0NsDQ%5EHVcc%3D2W%3F@aws-0-us-east-1.pooler.supabase.com:5432/postgres?schema=public&sslmode=require
-      - key: CLERK_SECRET_KEY
-        value: sk_test_Ud1uXh8tPfAHKh7sKFcGfWDlJqNaw1pAdsDI29DpuJ
-      - key: CLERK_PUBLISHABLE_KEY
-        value: pk_test_YXNzdXJlZC1nbnUtMjkuY2xlcmsuYWNjb3VudHMuZGV2JA
-      - key: FRONTEND_URL
-        value: https://venueiq-rho.vercel.app
       - key: KAFKA_ENABLED
         value: "false"
-      - key: ANTHROPIC_API_KEY
-        value: ""
-      - key: STRIPE_SECRET_KEY
-        value: ""
+      # Sensitive vars (DATABASE_URL, CLERK_SECRET_KEY, ANTHROPIC_API_KEY, etc.)
+      # are set directly on the Render service via dashboard or API — not stored here.
