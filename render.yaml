@@ -1,13 +1,12 @@
 services:
   - type: web
     name: venueiq-api
-    runtime: node
+    runtime: docker
     region: oregon
     plan: free
     branch: main
     rootDir: packages/services/api
-    buildCommand: npm install --legacy-peer-deps --no-fund
-    startCommand: npx tsx src/index.ts
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
