@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
-import { clerkPlugin } from '@clerk/fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import pino from 'pino';
 import { tenantsRoutes } from './routes/tenants';
@@ -29,12 +28,18 @@ async function bootstrap() {
   });
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
 
-  // Clerk auth — skip gracefully if key not set
+  // Clerk auth — wrap in try/catch so server starts even if Clerk has issues
   if (process.env.CLERK_SECRET_KEY) {
-    await app.register(clerkPlugin);
+    try {
+      const { clerkPlugin } = await import('@clerk/fastify');
+      await app.register(clerkPlugin);
+      logger.info('Clerk auth initialized');
+    } catch (err) {
+      logger.warn({ err }, 'Clerk init failed — running without auth');
+    }
   }
 
-  // Health check — no auth, must respond quickly
+  // Health check — no auth, must respond immediately
   app.get('/health', async () => ({
     status: 'ok',
     service: 'venueiq-api',
@@ -59,12 +64,11 @@ async function bootstrap() {
     });
   });
 
-  // Start Fastify — then attach Socket.io to the live HTTP server
+  // Start Fastify, then attach Socket.io to the live server
   const port = parseInt(process.env.PORT ?? '10000');
   await app.listen({ port, host: '0.0.0.0' });
   logger.info({ port }, 'VenueIQ API listening');
 
-  // Socket.io attaches AFTER app.listen() so app.server is valid
   io = new SocketIOServer(app.server, {
     cors: { origin: process.env.FRONTEND_URL ?? '*', credentials: true },
     transports: ['websocket', 'polling'],
@@ -75,7 +79,13 @@ async function bootstrap() {
     if (tenantId) socket.join(`tenant:${tenantId}`);
   });
 
-  startAgentScheduler();
+  // Start CRON agent scheduler
+  try {
+    startAgentScheduler();
+  } catch (err) {
+    logger.warn({ err }, 'Agent scheduler failed to start');
+  }
+
   logger.info('VenueIQ API fully started');
 }
 
